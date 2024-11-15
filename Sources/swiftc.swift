@@ -18,17 +18,18 @@ struct swiftc: ParsableCommand {
     func run() throws {
         preprocess()
         if lex {
-            let tokens = try lexer()
+            _ = try lexer()
         } else if parse {
             let tokens = try lexer()
-            parser()
+            _ = try parser(tokens: tokens)
         } else if codegen {
             let tokens = try lexer()
-            parser()
-            emit()
+            _ = try parser(tokens: tokens)
+            gen()
         } else {
             let tokens = try lexer()
-            parser()
+            _ = try parser(tokens: tokens)
+            gen()
             emit()
         }
         assemble()
@@ -39,10 +40,16 @@ struct swiftc: ParsableCommand {
         let url = URL(filePath: processed)
         let source = try String(contentsOf: url, encoding: .ascii)
         let lexer = Lexer(source: source)
-        return try lexer.scan()
+        try lexer.scan()
+        return lexer.tokens
     }
     
-    func parser() {
+    func parser(tokens: [Token]) throws -> Program {
+        let parser = Parser(tokens: tokens)
+        return try parser.parse()
+    }
+    
+    func gen() {
         
     }
     
