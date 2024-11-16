@@ -24,13 +24,13 @@ struct swiftc: ParsableCommand {
             _ = try parser(tokens: tokens)
         } else if codegen {
             let tokens = try lexer()
-            _ = try parser(tokens: tokens)
-            gen()
+            let program = try parser(tokens: tokens)
+            _ = try gen(program: program)
         } else {
             let tokens = try lexer()
-            _ = try parser(tokens: tokens)
-            gen()
-            emit()
+            let program = try parser(tokens: tokens)
+            let asm = try gen(program: program)
+            try emit(asm: asm)
         }
         assemble()
     }
@@ -49,23 +49,27 @@ struct swiftc: ParsableCommand {
         return try parser.parse()
     }
     
-    func gen() {
-        
+    func gen(program: Program) throws -> AsmProgram {
+        let codeGenerator = CodeGernerator(program: program)
+        return try codeGenerator.generate()
     }
     
-    func emit() {
-        
+    func emit(asm: AsmProgram) throws {
+        let codeEmitter = CodeEmitter(program: asm)
+        codeEmitter.emit()
+        let output = input.replacingOccurrences(of: ".c", with: ".s")
+        try codeEmitter.code.write(toFile: output, atomically: true, encoding: .ascii)
     }
     
     func preprocess() {
         let output = input.replacingOccurrences(of: ".c", with: ".i")
-        shell("clang -E -P \(input) -o \(output)")
+        print(shell("clang -E -P \(input) -o \(output)"))
     }
     
     func assemble() {
         let assembly = input.replacingOccurrences(of: ".c", with: ".s")
         let output = input.replacingOccurrences(of: ".c", with: "")
-        shell("clang \(assembly) -o \(output)")
+        print(shell("clang \(assembly) -o \(output)"))
     }
     
     @discardableResult

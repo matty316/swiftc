@@ -64,7 +64,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/matty/projects/writing-a-c-compiler-tests/tests/chapter_1/valid/multi_digit.c"
+            argument = "/Users/matty/projects/swift-c/TestFiles/test.c"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

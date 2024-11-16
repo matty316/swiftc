@@ -13,7 +13,7 @@ struct Program {
 }
 
 struct Function: Stmt {
-    let ident: Ident
+    let name: String
     let stmt: Stmt
 }
 

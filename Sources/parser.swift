@@ -37,7 +37,7 @@ class Parser {
         let stmt = try parseStatement()
         try consume(tokenType: .rightBrace)
         
-        return Function(ident: ident, stmt: stmt)
+        return Function(name: ident.name, stmt: stmt)
     }
     
     func parseIdentifier() throws -> Ident {
