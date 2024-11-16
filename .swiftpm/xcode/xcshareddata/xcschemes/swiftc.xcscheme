@@ -67,6 +67,10 @@
             argument = "/Users/matty/projects/swift-c/TestFiles/test.c"
             isEnabled = "YES">
          </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--assembly"
+            isEnabled = "YES">
+         </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
    <ProfileAction

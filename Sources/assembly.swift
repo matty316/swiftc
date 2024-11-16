@@ -29,4 +29,28 @@ struct Imm: Operand {
     let value: Int
 }
 
-struct Register: Operand {}
+struct Register: Operand {
+    var reg: Reg
+}
+
+enum Reg: String {
+    case AX = "eax"
+    case R10 = "r10d"
+}
+
+struct AsmUnary: Instruction {
+    let op: Token
+    let operand: Operand
+}
+
+struct AllocateStack: Instruction {
+    let size: Int
+}
+
+struct Stack: Operand {
+    let Address: Int
+}
+
+struct Pseudo: Operand {
+    let indentifier: String
+}

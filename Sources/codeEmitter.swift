@@ -15,21 +15,27 @@ class CodeEmitter {
     
     func emit() {
         let function = program.function
-        code.append("\t.globl _\(function.name)\n_\(function.name):\n")
+        code.append("\t.globl\t_\(function.name)\n_\(function.name):\n\tpushq\t%rbp\n\tmovq\t%rsp, %rbp\n")
         for instruction in function.instructions {
             if let mov = instruction as? Mov {
-                code.append("\tmovl \(emitOperand(mov.src)), \(emitOperand(mov.dest))\n")
+                code.append("\tmovl\t\(emitOperand(mov.src)), \(emitOperand(mov.dest))\n")
             } else if let _ = instruction as? Ret {
-                code.append("\tret\n")
+                code.append("\tmovq\t%rbp, %rsp\n\tpopq\t%rbp\n\tret\n")
+            } else if let unary = instruction as? AsmUnary {
+                code.append("\t\(unary.op.type == .minus ? "negl" : "notl")\t\(emitOperand(unary.operand))\n")
+            } else if let allocate = instruction as? AllocateStack {
+                code.append("\tsubq\t$\(allocate.size), %rsp\n")
             }
         }
     }
     
     func emitOperand(_ operand: Operand) -> String {
-        if let _ = operand as? Register {
-            return "%eax"
+        if let reg = operand as? Register {
+            return "%\(reg.reg.rawValue)"
         } else if let imm = operand as? Imm {
             return "$\(imm.value)"
+        } else if let stack = operand as? Stack {
+            return "\(stack.Address)(%rbp)"
         }
         return ""
     }

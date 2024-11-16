@@ -13,7 +13,9 @@ struct swiftc: ParsableCommand {
     @Argument var input: String
     @Flag var lex = false
     @Flag var parse = false
+    @Flag var tacky = false
     @Flag var codegen = false
+    @Flag var assembly = false
     
     func run() throws {
         preprocess()
@@ -22,17 +24,25 @@ struct swiftc: ParsableCommand {
         } else if parse {
             let tokens = try lexer()
             _ = try parser(tokens: tokens)
+        } else if tacky {
+            let tokens = try lexer()
+            let program = try parser(tokens: tokens)
+            _ = try genTacky(program: program)
         } else if codegen {
             let tokens = try lexer()
             let program = try parser(tokens: tokens)
-            _ = try gen(program: program)
+            let tackyProgram = try genTacky(program: program)
+            _ = try gen(program: tackyProgram)
         } else {
             let tokens = try lexer()
             let program = try parser(tokens: tokens)
-            let asm = try gen(program: program)
+            let tackyProgram = try genTacky(program: program)
+            let asm = try gen(program: tackyProgram)
             try emit(asm: asm)
         }
-        assemble()
+        if !assembly {
+            assemble()
+        }
     }
     
     func lexer() throws -> [Token] {
@@ -49,16 +59,28 @@ struct swiftc: ParsableCommand {
         return try parser.parse()
     }
     
-    func gen(program: Program) throws -> AsmProgram {
+    func genTacky(program: Program) throws -> TackyProgram {
+        let tackyGen = TackyGenerator(program: program)
+        print(program)
+        return try tackyGen.emit()
+    }
+    
+    func gen(program: TackyProgram) throws -> AsmProgram {
         let codeGenerator = CodeGernerator(program: program)
+        print(program)
         return try codeGenerator.generate()
     }
     
     func emit(asm: AsmProgram) throws {
         let codeEmitter = CodeEmitter(program: asm)
         codeEmitter.emit()
-        let output = input.replacingOccurrences(of: ".c", with: ".s")
-        try codeEmitter.code.write(toFile: output, atomically: true, encoding: .ascii)
+        print(asm)
+        if assembly {
+            print(codeEmitter.code)
+        } else {
+            let output = input.replacingOccurrences(of: ".c", with: ".s")
+            try codeEmitter.code.write(toFile: output, atomically: true, encoding: .ascii)
+        }
     }
     
     func preprocess() {

@@ -28,3 +28,8 @@ struct Ident: Expr {
 struct Integer: Expr {
     let value: Int
 }
+
+struct Unary: Expr {
+    let op: Token
+    let right: Expr
+}

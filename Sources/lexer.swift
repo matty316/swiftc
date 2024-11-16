@@ -42,6 +42,13 @@ class Lexer {
             case "{": addToken(tokenType: .leftBrace)
             case "}": addToken(tokenType: .rightBrace)
             case ";": addToken(tokenType: .semicolon)
+            case "~": addToken(tokenType: .tilde)
+            case "-":
+                if peek == "-" {
+                    addToken(tokenType: .minusMinus)
+                } else {
+                    addToken(tokenType: .minus)
+                }
             case " ", "\t", "\r": break
             case "\n": line += 1
             default:

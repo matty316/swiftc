@@ -54,11 +54,31 @@ class Parser {
     }
     
     func parseExpression() throws -> Expr {
-        let constant = try consume(tokenType: .constant)
-        guard let integer = Int(constant.lexeme) else {
-            throw ParserError.invalidToken(prev)
+        return try parseUnary()
+    }
+    
+    func parseUnary() throws -> Expr {
+        if match(tokenTypes: [.tilde, .minus]) {
+            let op = prev
+            let right = try parseUnary()
+            return Unary(op: op, right: right)
         }
-        return Integer(value: integer)
+        return try parsePrimary()
+    }
+    
+    func parsePrimary() throws -> Expr {
+        if match(tokenTypes: [.constant]) {
+            let constant = prev
+            guard let integer = Int(constant.lexeme) else {
+                throw ParserError.invalidToken(prev)
+            }
+            return Integer(value: integer)
+        } else if match(tokenTypes: [.leftParen]) {
+            let inner = try parseExpression()
+            try consume(tokenType: .rightParen)
+            return inner
+        }
+        throw ParserError.invalidToken(peek)
     }
     
     @discardableResult
