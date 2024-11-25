@@ -43,12 +43,18 @@ class TackyGenerator {
             let dst_name = makeTemp()
             let dst = TackyVar(name: dst_name)
             let op = unary.op
-            instructions.append(TackyUnary(op: op, src: src, dest: dst))
+            instructions.append(TackyUnary(op: op, src: src, dst: dst))
+            return dst
+        } else if let binary = expr as? Binary {
+            let v1 = try parseVal(expr: binary.left)
+            let v2 = try parseVal(expr: binary.right)
+            let dst_name = makeTemp()
+            let dst = TackyVar(name: dst_name)
+            instructions.append(TackyBinary(op: binary.op, src1: v1, src2: v2, dst: dst))
             return dst
         }
         throw TackyError.invalidStatement
     }
-    
     func makeTemp() -> String {
         let name = "Var.Temp\(count)"
         count += 1

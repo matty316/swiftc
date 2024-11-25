@@ -21,24 +21,29 @@ class CodeGernerator {
     func generate() throws -> AsmProgram {
         let pseudoProgram = AsmProgram(function: try genFunction())
         let invalidProgram = try replacePseudoregisters(pseudoProgram)
-        return try genValidProgram(invalidProgram)
+        let valid = try genValidProgram(invalidProgram)
+        return valid
     }
     
     func replacePseudoregisters(_ pseudoProgram: AsmProgram) throws -> AsmProgram {
         let function = pseudoProgram.function
-        let instructions = try function.instructions.map { instruction -> Instruction in
+        let instructions = function.instructions.map { instruction -> Instruction in
             if let mov  = instruction as? Mov {
-                let dest = mov.dest
+                let dst = mov.dst
                 let src = mov.src
-                
-                return Mov(dest: convertPsuedoReg(dest), src: convertPsuedoReg(src))
+                return Mov(src: convertPsuedoReg(src), dst: convertPsuedoReg(dst))
             } else if let unary = instruction as? AsmUnary {
-                let dest = unary.operand
-                return AsmUnary(op: unary.op, operand: convertPsuedoReg(dest))
-            } else if let ret = instruction as? Ret {
-                return ret
+                let dst = unary.operand
+                return AsmUnary(op: unary.op, operand: convertPsuedoReg(dst))
+            } else if let binary = instruction as? AsmBinary {
+                let src1 = binary.operand1
+                let src2 = binary.operand2
+                return AsmBinary(op: binary.op, operand1: convertPsuedoReg(src1), operand2: convertPsuedoReg(src2))
+            } else if let div = instruction as? iDiv {
+                let src = div.operand
+                return iDiv(operand: convertPsuedoReg(src))
             }
-            throw CodeGerneratorError.general
+            return instruction
         }
         return AsmProgram(function: AsmFunction(name: function.name, instructions: instructions))
     }
@@ -50,6 +55,13 @@ class CodeGernerator {
         let updatedInstructions = instructions.flatMap { instruction -> [Instruction] in
             if let mov = instruction as? Mov {
                 return convertMov(mov)
+            } else if let div = instruction as? iDiv {
+                var updated = [Instruction]()
+                updated.append(Mov(src: div.operand, dst: Register(reg: .R10)))
+                updated.append(iDiv(operand: Register(reg: .R10)))
+                return updated
+            } else if let binary = instruction as? AsmBinary {
+                return convertBinary(binary)
             } else {
                 return [instruction]
             }
@@ -66,11 +78,15 @@ class CodeGernerator {
         var instructions = [Instruction]()
         for instruction in function.instructions {
             if let returnStmt = instruction as? TackyReturn {
-                instructions.append(Mov(dest: Register(reg: .AX), src: try genOperand(returnStmt.value)))
+                instructions.append(Mov(src: try genOperand(returnStmt.value), dst: Register(reg: .AX)))
                 instructions.append(Ret())
-            } else if let instruction = instruction as? TackyUnary {
-                instructions.append(Mov(dest: try genOperand(instruction.dest), src: try genOperand(instruction.src)))
-                instructions.append(AsmUnary(op: instruction.op, operand: try genOperand(instruction.dest)))
+            } else if let instruction = instruction as? TackyUnary, instruction.op.type == .minus || instruction.op.type == .tilde {
+                instructions.append(Mov(src: try genOperand(instruction.src), dst: try genOperand(instruction.dst)))
+                instructions.append(AsmUnary(op: instruction.op, operand: try genOperand(instruction.dst)))
+            } else if let instruction = instruction as? TackyBinary {
+                instructions.append(contentsOf: try genBinary(binary: instruction))
+            } else {
+                throw CodeGerneratorError.general
             }
         }
         
@@ -103,11 +119,58 @@ class CodeGernerator {
     }
     
     func convertMov(_ mov: Mov) -> [Mov] {
-        if mov.src is Stack && mov.dest is Stack {
-            let mov1 = Mov(dest: Register(reg: .R10), src: mov.src)
-            let mov2 = Mov(dest: mov.dest, src: Register(reg: .R10))
+        if mov.src is Stack && mov.dst is Stack {
+            let mov1 = Mov(src: mov.src, dst: Register(reg: .R10))
+            let mov2 = Mov(src: Register(reg: .R10), dst: mov.dst)
             return [mov1, mov2]
         }
         return [mov]
+    }
+    
+    func convertBinary(_ binary: AsmBinary) -> [Instruction] {
+        var instructions = [Instruction]()
+        switch binary.op.type {
+        case .star:
+            if binary.operand2 is Stack {
+                instructions.append(Mov(src: binary.operand2, dst: Register(reg: .R11)))
+                instructions.append(AsmBinary(op: binary.op, operand1: binary.operand1, operand2: Register(reg: .R11)))
+                instructions.append(Mov(src: Register(reg: .R11), dst: binary.operand2))
+            }
+        default:
+            if binary.operand1 is Stack && binary.operand2 is Stack {
+                instructions.append(Mov(src: binary.operand1, dst: Register(reg: .R10)))
+                instructions.append(AsmBinary(op: binary.op, operand1: Register(reg: .R10), operand2: binary.operand2))
+            } else {
+                return [binary]
+            }
+        }
+        return instructions
+    }
+    
+    func genBinary(binary: TackyBinary) throws -> [Instruction] {
+        var instructions = [Instruction]()
+        switch binary.op.type {
+        case .slash, .percent:
+                let src1 = try genOperand(binary.src1)
+                let src2 = try genOperand(binary.src2)
+                let dst = try genOperand(binary.dst)
+                instructions.append(Mov(src: src1, dst: Register(reg: .AX)))
+                instructions.append(Cdq())
+                instructions.append(iDiv(operand: src2))
+                instructions.append(Mov(src: Register(reg: binary.op.type == .slash ? .AX : .DX), dst: dst))
+        case .plus, .minus, .star, .and, .or, .xor:
+            instructions.append(Mov(src: try genOperand(binary.src1), dst: try genOperand(binary.dst)))
+            instructions.append(AsmBinary(op: binary.op,
+                                          operand1: try genOperand(binary.src2),
+                                          operand2: try genOperand(binary.dst)))
+        case .leftShift, .rightShift:
+            instructions.append(Mov(src: try genOperand(binary.src1), dst: try genOperand(binary.dst)))
+            instructions.append(AsmBinary(op: binary.op,
+                                          operand1: try genOperand(binary.src2),
+                                          operand2: try genOperand(binary.dst)))
+        default: throw CodeGerneratorError.general
+        }
+        
+        return instructions
     }
 }

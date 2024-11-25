@@ -47,20 +47,54 @@ class Parser {
     
     func parseStatement() throws -> Stmt {
         try consume(tokenType: .returnKeyword)
-        let expr = try parseExpression()
+        let expr = try parseExpression(0)
         try consume(tokenType: .semicolon)
         
         return Return(expr: expr)
     }
     
-    func parseExpression() throws -> Expr {
-        return try parseUnary()
+    func parseExpression(_ minPrecedence: Int) throws -> Expr {
+        var left = try parseFactor()
+        var next = peek
+        while isBinaryToken(next.type) && precedence(next.type) >= minPrecedence {
+            advance()
+            let op = prev
+            let right = try parseExpression(precedence(next.type) + 1)
+            left = Binary(op: op, left: left, right: right)
+            next = peek
+        }
+        return left
+    }
+
+    func isBinaryToken(_ t: TokenType) -> Bool {
+        t == .plus ||
+        t == .minus ||
+        t == .star ||
+        t == .slash ||
+        t == .percent ||
+        t == .and ||
+        t == .xor ||
+        t == .or ||
+        t == .leftShift ||
+        t == .rightShift
     }
     
-    func parseUnary() throws -> Expr {
+    func precedence(_ t: TokenType) -> Int {
+        switch t {
+        case .star, .slash, .percent: 50
+        case .plus, .minus: 45
+        case .leftShift, .rightShift: 40
+        case .and: 30
+        case .xor: 25
+        case .or: 20
+        default: 0
+        }
+    }
+    
+    func parseFactor() throws -> Expr {
         if match(tokenTypes: [.tilde, .minus]) {
             let op = prev
-            let right = try parseUnary()
+            let right = try parseFactor()
             return Unary(op: op, right: right)
         }
         return try parsePrimary()
@@ -74,7 +108,7 @@ class Parser {
             }
             return Integer(value: integer)
         } else if match(tokenTypes: [.leftParen]) {
-            let inner = try parseExpression()
+            let inner = try parseExpression(0)
             try consume(tokenType: .rightParen)
             return inner
         }

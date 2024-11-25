@@ -43,9 +43,31 @@ class Lexer {
             case "}": addToken(tokenType: .rightBrace)
             case ";": addToken(tokenType: .semicolon)
             case "~": addToken(tokenType: .tilde)
+            case "+": addToken(tokenType: .plus)
+            case "*": addToken(tokenType: .star)
+            case "/": addToken(tokenType: .slash)
+            case "%": addToken(tokenType: .percent)
+            case "&": addToken(tokenType: .and)
+            case "|": addToken(tokenType: .or)
+            case "^": addToken(tokenType: .xor)
+            case "<":
+                if peek == "<" {
+                    addToken(tokenType: .leftShift)
+                    advance()
+                } else {
+                    addToken(tokenType: .lessThan)
+                }
+            case ">":
+                if peek == ">" {
+                    addToken(tokenType: .rightShift)
+                    advance()
+                } else {
+                    addToken(tokenType: .greaterThan)
+                }
             case "-":
                 if peek == "-" {
                     addToken(tokenType: .minusMinus)
+                    advance()
                 } else {
                     addToken(tokenType: .minus)
                 }

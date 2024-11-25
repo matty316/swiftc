@@ -7,6 +7,7 @@
 
 import ArgumentParser
 import Foundation
+import SwiftPrettyPrint
 
 @main
 struct swiftc: ParsableCommand {
@@ -61,20 +62,20 @@ struct swiftc: ParsableCommand {
     
     func genTacky(program: Program) throws -> TackyProgram {
         let tackyGen = TackyGenerator(program: program)
-        print(program)
+        Pretty.prettyPrint(program)
         return try tackyGen.emit()
     }
     
     func gen(program: TackyProgram) throws -> AsmProgram {
         let codeGenerator = CodeGernerator(program: program)
-        print(program)
+        Pretty.prettyPrint(program)
         return try codeGenerator.generate()
     }
     
     func emit(asm: AsmProgram) throws {
         let codeEmitter = CodeEmitter(program: asm)
-        codeEmitter.emit()
-        print(asm)
+        try codeEmitter.emit()
+        Pretty.prettyPrint(asm)
         if assembly {
             print(codeEmitter.code)
         } else {

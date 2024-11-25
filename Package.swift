@@ -9,6 +9,7 @@ let package = Package(
     dependencies: [
         // other dependencies
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
+        .package(url: "https://github.com/YusukeHosonuma/SwiftPrettyPrint.git", .upToNextMajor(from: "1.2.0")),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -17,6 +18,7 @@ let package = Package(
             name: "swiftc", dependencies: [
                 // other dependencies
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "SwiftPrettyPrint", package: "SwiftPrettyPrint")
             ]),
         .testTarget(name: "swiftcTests", dependencies: ["swiftc"])
     ]

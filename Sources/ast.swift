@@ -33,3 +33,9 @@ struct Unary: Expr {
     let op: Token
     let right: Expr
 }
+
+struct Binary: Expr {
+    let op: Token
+    let left: Expr
+    let right: Expr
+}

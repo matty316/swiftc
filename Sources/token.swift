@@ -12,5 +12,5 @@ struct Token {
 }
 
 enum TokenType: String {
-    case semicolon, ident, tilde, minus, minusMinus, constant, intKeyword, voidKeyword, returnKeyword, leftParen, rightParen, leftBrace, rightBrace, eof
+    case semicolon, ident, tilde, minus, plus, star, slash, percent, minusMinus, constant, intKeyword, voidKeyword, returnKeyword, leftParen, rightParen, leftBrace, rightBrace, eof, and, or, xor, leftShift, rightShift, lessThan, greaterThan
 }

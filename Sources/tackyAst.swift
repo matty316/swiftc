@@ -23,7 +23,14 @@ struct TackyReturn: TackyInstruction {
 struct TackyUnary: TackyInstruction {
     let op: Token
     let src: TackyValue
-    let dest: TackyValue
+    let dst: TackyValue
+}
+
+struct TackyBinary: TackyInstruction {
+    let op: Token
+    let src1: TackyValue
+    let src2: TackyValue
+    let dst: TackyValue
 }
 
 protocol TackyValue {}
